@@ -1,0 +1,17 @@
+/* assets/css/admin-style.css */
+
+.wp-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wp-list-table th,
+.wp-list-table td {
+  padding: 10px;
+  text-align: left;
+}
+
+.wp-list-table .column-action {
+  width: 20%;
+  text-align: center;
+}
