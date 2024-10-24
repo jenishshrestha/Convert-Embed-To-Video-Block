@@ -15,3 +15,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin-shortcode-conversion.ph
 require_once plugin_dir_path(__FILE__) . 'includes/post-conversion.php';
 require_once plugin_dir_path(__FILE__) . 'includes/bulk-conversion.php';
 require_once plugin_dir_path(__FILE__) . 'includes/helpers.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin-footnotes.php';
+
+// admin menu
+require_once plugin_dir_path(__FILE__) . 'includes/admin-menu.php';

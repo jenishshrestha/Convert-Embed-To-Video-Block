@@ -5,6 +5,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
+
 // Function to display the listing page with bulk actions and post type filtering
 function display_embed_shortcode_list()
 {
@@ -17,12 +18,12 @@ function display_embed_shortcode_list()
     reset($post_types);
     $post_type = key($post_types);
 
-    if (isset($_POST['post_type_filter'])) {
-        $post_type = sanitize_text_field($_POST['post_type_filter']);
+    if (isset($_GET['post_type_filter'])) {
+        $post_type = sanitize_text_field($_GET['post_type_filter']);
     }
 
     // Number of posts per page (you can set this dynamically based on user preference)
-    $posts_per_page = 10;
+    $posts_per_page = 50;
 
     // Get the current page number (for pagination)
     $paged = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
@@ -43,10 +44,10 @@ function display_embed_shortcode_list()
 
     $results = $wpdb->get_results($query);
 
-    // Get the total count of the posts
+    // Get the total count of the posts in a pagination
     $post_count = count($results);
 
-    // Get the total number of matching posts (for pagination)
+    // Get the total number of matching posts
     $total_posts = $wpdb->get_var("SELECT FOUND_ROWS()");
 
     // Calculate the total number of pages
@@ -55,17 +56,18 @@ function display_embed_shortcode_list()
     <div class="wrap">
         <h1>Posts with Embed Shortcodes</h1>
 
-        <form method="POST" action="">
-            <?php wp_nonce_field('bulk_convert_nonce_action', '_wpnonce_bulk_convert'); ?>
+        <form method="GET" action="">
+            <input type="hidden" name="page" class="page_slug" value="embed-shortcode-list">
+            <?php wp_nonce_field('_wpnonce', '_wpnonce'); ?>
 
             <div class="tablenav top">
                 <!-- Bulk Action Section -->
                 <div class="alignleft actions bulkactions">
-                    <select name="bulk_action">
-                        <option value="no_action">Bulk Actions</option>
-                        <option value="convert_selected">Convert to Gutenberg</option>
+                    <select name="action">
+                        <option value="-1">Bulk Actions</option>
+                        <option value="convert_selected">Convert [Embed]</option>
                     </select>
-                    <input type="submit" name="apply_bulk_action" class="button action" value="Apply">
+                    <input type="submit" id="action" name="apply_bulk_action" class="button action" value="Apply">
                 </div>
 
                 <!-- Post Type Filter Section -->
@@ -81,7 +83,8 @@ function display_embed_shortcode_list()
                 </div>
 
                 <!-- Page nav -->
-                <div class="tablenav-pages one-page"><span class="displaying-num"><?php echo $post_count; ?> items</span>
+                <div class="tablenav-pages one-page">
+                    <span class="displaying-num"><?php echo $total_posts; ?> items</span>
                 </div>
             </div>
 
@@ -117,8 +120,10 @@ function display_embed_shortcode_list()
                                 <td><?php echo esc_html($post->post_date); ?></td>
                                 <td>
                                     <a href="<?php echo get_edit_post_link($post->ID); ?>">View</a> |
-                                    <a
-                                        href="<?php echo admin_url('admin.php?page=embed-shortcode-list&convert_post_id=' . $post->ID); ?>">Convert</a>
+                                    <!-- <a
+                                        href="<?php //echo admin_url('admin.php?page=embed-shortcode-list&convert_post_id=' . $post->ID); ?>">Convert</a> -->
+
+                                    <a href="<?php echo add_query_arg('convert_post_id', $post->ID); ?>">Convert</a>
                                 </td>
                             </tr>
                             <?php
@@ -130,27 +135,55 @@ function display_embed_shortcode_list()
                 </tbody>
             </table>
 
-            <!-- Pagination Controls -->
             <div class="tablenav bottom">
-                <?php
-                // Generate pagination links
-                $pagination_args = array(
-                    'base' => add_query_arg('paged', '%#%'),
-                    'format' => '',
-                    'prev_text' => __('&laquo; Previous'),
-                    'next_text' => __('Next &raquo;'),
-                    'total' => $total_pages,
-                    'current' => $paged
-                );
-                echo paginate_links($pagination_args);
-                ?>
+                <!-- Bulk Action Section -->
+                <div class="alignleft actions bulkactions">
+                    <select name="action">
+                        <option value="-1">Bulk Actions</option>
+                        <option value="convert_selected">Convert [Embed]</option>
+                    </select>
+                    <input type="submit" id="action" name="apply_bulk_action" class="button action" value="Apply">
+                </div>
+
+                <!-- Pagination -->
+                <div class="tablenav-pages">
+                    <span class="displaying-num"><?php echo $total_posts; ?> items</span>
+                    <span class="pagination-links">
+                        <?php
+                        if ($paged > 1) {
+                            echo '<a class="first-page button" href="' . add_query_arg('paged', 1) . '"><span class="screen-reader-text">First page</span><span aria-hidden="true">«</span></a>';
+                        } else {
+                            echo '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">«</span>';
+                        }
+
+                        // Previous page link
+                        if ($paged > 1) {
+                            echo '<a class="prev-page button" href="' . add_query_arg('paged', $paged - 1) . '"><span class="screen-reader-text">Previous page</span><span aria-hidden="true">‹</span></a>';
+                        } else {
+                            echo '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">‹</span>';
+                        }
+
+                        // Current page and total pages
+                        echo '<span class="screen-reader-text">Current Page</span><span id="table-paging" class="paging-input"><span class="tablenav-paging-text">' . $paged . ' of <span class="total-pages">' . $total_pages . '</span></span></span>';
+
+                        // Next page link
+                        if ($paged < $total_pages) {
+                            echo '<a class="next-page button" href="' . add_query_arg('paged', $paged + 1) . '"><span class="screen-reader-text">Next page</span><span aria-hidden="true">›</span></a>';
+                        } else {
+                            echo '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">›</span>';
+                        }
+
+                        // Last page link
+                        if ($paged < $total_pages) {
+                            echo '<a class="last-page button" href="' . add_query_arg('paged', $total_pages) . '"><span class="screen-reader-text">Last page</span><span aria-hidden="true">»</span></a>';
+                        } else {
+                            echo '<span class="tablenav-pages-navspan button disabled" aria-hidden="true">»</span>';
+                        }
+                        ?>
+                    </span>
+                </div>
             </div>
         </form>
     </div>
     <?php
 }
-
-// Add this to the admin menu
-add_action('admin_menu', function () {
-    add_menu_page('Convert [Embed] to Video', 'Convert [Embed]', 'manage_options', 'embed-shortcode-list', 'display_embed_shortcode_list');
-});

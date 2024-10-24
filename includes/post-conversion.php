@@ -84,8 +84,12 @@ function handle_post_conversion()
         $post_id = intval($_GET['convert_post_id']);
         convert_single_post_embed($post_id);
 
-        // Redirect to avoid re-running the conversion on page refresh
-        wp_redirect(admin_url('admin.php?page=embed-shortcode-list&conversion=success'));
+        // Remove 'convert_post_id' from the URL and add 'conversion=success'
+        $current_url = remove_query_arg('convert_post_id');  // Remove the 'convert_post_id' from URL
+        $redirect_url = add_query_arg('conversion', 'success', $current_url);  // Add 'conversion=success'
+
+        // Redirect to the modified URL
+        wp_redirect($redirect_url);
         exit;
     }
 }
